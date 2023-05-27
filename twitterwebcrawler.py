@@ -70,8 +70,9 @@ class TwitterScraper:
                     WebDriverWait(self.driver, 10).until(EC.presence_of_element_located(
                         (By.CSS_SELECTOR, '[data-testid="tweetText"]')))
                 except WebDriverException:
-                    self.logger.warning(
-                        "Tweets did not appear! Proceeding after timeout")
+                    self.logger.error(
+                        "Tweets didn't appear! Closing app...")
+                    raise
                 wait = WebDriverWait(self.driver, 10)
                 self.logger.info("Collecting tweets...")
                 time.sleep(1)
@@ -80,8 +81,13 @@ class TwitterScraper:
                         "window.scrollTo(0, document.body.scrollHeight);")
                     scrolls += 1
                     time.sleep(2)
-                tweets = wait.until(EC.presence_of_all_elements_located(
-                    (By.CSS_SELECTOR, '[data-testid="tweet"]')))
+                try:
+                    tweets = wait.until(EC.presence_of_all_elements_located(
+                        (By.CSS_SELECTOR, '[data-testid="tweet"]')))
+                except WebDriverException:
+                    self.logger.error(
+                        "Tweets didn't appear! Closing app...")
+                    raise
                 for tweet in tweets:
                     try:
                         tweet_text = WebDriverWait(tweet, 10).until(EC.presence_of_element_located(

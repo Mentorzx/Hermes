@@ -31,9 +31,9 @@ class SvmThinker:
         try:
             self.logger.info("Loading data...")
             self.data = pd.read_csv(
-                'datasets/translated_speech_figures.csv', delimiter=';')
+                'datasets/translated_speech_figures.csv', encoding='utf-8', delimiter=';')
             self.sentiment_data = pd.read_csv(
-                'datasets/translated_sentiment_words.csv')
+                'datasets/translated_sentiment_words.csv', encoding='utf-8')
         except Exception as e:
             self.logger.error(f"Error occurred while loading data: {str(e)}")
             raise
@@ -51,7 +51,7 @@ class SvmThinker:
         try:
             self.logger.info("Training model...")
             X = self.data['tweet_text']
-            y = self.data['irony_label']
+            y = self.data['class_label']
             X = self.vectorizer.fit_transform(X)
             X_train, X_test, y_train, y_test = train_test_split(
                 X, y, test_size=0.2, random_state=42)
