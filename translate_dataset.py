@@ -15,11 +15,11 @@ class CSVTranslator:
         output_file (str): The path to the output CSV file.
     """
 
-    def __init__(self, input_file: str, output_file: str):
+    def __init__(self, input_file: str, output_file: str) -> None:
         self.input_file = input_file
         self.output_file = output_file
 
-    def translate_csv(self, src_lang: str, dest_lang: str):
+    def translate_csv(self, src_lang: str, dest_lang: str) -> None:
         """ Translates the content of the input CSV file using translate library and saves the translated data to the output CSV file.
 
         Args:
@@ -50,6 +50,8 @@ class CSVTranslator:
 
 
 if __name__ == "__main__":
+    # Falta implementar forma de traduzir os bancos de dados.
+    # As bibs limitam as traduções.
     translated = CSVTranslator(
         "datasets/sentiment_words.csv", "datasets/translated_sentiment_words.csv")
     translated.translate_csv('en', 'pt')
