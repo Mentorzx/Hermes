@@ -1,29 +1,36 @@
 # Projeto Hermes
 
+## Descrição
+O Projeto Hermes é um algoritmo desenvolvido com o objetivo acadêmico de identificar palavras e avaliar a opinião dos usuários do Twitter sobre determinados assuntos. Utilizando técnicas de aprendizado de máquina, especificamente a Support Vector Machine (SVM), o algoritmo analisa os tweets coletados e classifica se as palavras associadas a um determinado tópico estão sendo mencionadas de forma positiva ou negativa.
+
+O algoritmo inicialmente se baseia nas tendências (trends) do Twitter para selecionar os assuntos de análise. Posteriormente, será implementada a funcionalidade que permitirá aos usuários inserir palavras personalizadas para busca. Durante o processo de análise, é realizado o web scraping para obter os tweets relevantes para cada tópico de interesse.
+
+É importante ressaltar que o Projeto Hermes tem caráter puramente acadêmico e foi desenvolvido como uma ferramenta de aprendizado e aprimoramento de habilidades no campo de processamento de linguagem natural e aprendizado de máquina. O projeto foi concebido pelo desenvolvedor Alex Lira com o intuito de agregar valor ao seu currículo e demonstrar suas habilidades técnicas nessa área específica.
+
+## Funcionalidades
+O Projeto Hermes possui as seguintes funcionalidades:
+
+- Coleta de tweets: O algoritmo utiliza técnicas de web scraping para coletar tweets relacionados aos tópicos de interesse, seja com base nas tendências do Twitter ou palavras personalizadas inseridas pelo usuário.
+
+- Análise de sentimentos: Utilizando uma abordagem de aprendizado de máquina, o algoritmo classifica os tweets como positivos ou negativos em relação às palavras-chave associadas aos tópicos de interesse. Isso permite obter insights sobre a opinião dos usuários em relação aos assuntos em discussão.
+
+- Relatório de resultados: O algoritmo gera um relatório contendo informações sobre a quantidade de tweets positivos e negativos para cada tópico analisado. Isso fornece uma visão geral do sentimento geral dos usuários em relação aos assuntos em questão.
+
+## Utilização
+Para utilizar o Projeto Hermes, siga as etapas abaixo:
+
+1. Configure o ambiente: Certifique-se de ter as dependências necessárias instaladas no seu ambiente de desenvolvimento. Consulte o arquivo requirements.txt para obter uma lista completa das dependências e suas versões correspondentes.
+
+2. Configuração do arquivo config.yml: O arquivo config.yml contém as configurações do algoritmo, como credenciais de acesso ao Twitter e outras configurações relevantes. Preencha corretamente todas as informações necessárias antes de executar o algoritmo.
+
+3. Execução do algoritmo: Execute o arquivo main.py para iniciar o processo de coleta e análise de tweets. O algoritmo coletará os tweets com base nas tendências do Twitter ou nas palavras personalizadas inseridas pelo usuário, realizará a análise de sentimentos e gerará um relatório com os resultados.
+
 ## Aviso Legal
+O Projeto Hermes foi desenvolvido exclusivamente com propósitos acadêmicos e para agregar valor ao currículo do desenvolvedor Alex Lira. O web scraping realizado para obter os tweets no Twitter foi realizado estritamente para fins de estudo e aprendizado, e não com o intuito de violar as políticas ou termos de uso da plataforma.
 
-Este projeto inclui informações sobre a prática de web scraping do Twitter. É importante observar que o web scraping de sites, incluindo o Twitter, pode violar os termos de serviço do site e possivelmente infringir direitos autorais e privacidade. As informações fornecidas aqui são apenas para fins educacionais e não constituem aconselhamento jurídico.
+É importante destacar que o web scraping no Twitter é uma prática que pode violar as políticas de uso da plataforma, especialmente quando realizado de forma massiva ou sem a devida permissão. Recomendamos que qualquer utilização do Projeto Hermes ou de suas funcionalidades seja feita em conformidade com as políticas e termos de uso do Twitter, bem como quaisquer leis e regulamentações aplicáveis.
 
-## Termos de Serviço e Políticas de Uso
+O desenvolvedor Alex Lira não se responsabiliza por qualquer uso indevido ou violação de direitos decorrentes da utilização do Projeto Hermes. O usuário é o único responsável por garantir que sua utilização esteja em conformidade com as políticas e termos de uso aplicáveis.
 
-Ao utilizar serviços online, como o Twitter, é fundamental respeitar e aderir aos seus termos de serviço e políticas de uso. Essas políticas estabelecem as diretrizes e restrições que regem a utilização do serviço, incluindo a coleta e uso de dados. Recomenda-se consultar os termos de serviço e as políticas de uso do Twitter para entender as restrições específicas relacionadas ao web scraping e à divulgação de dados coletados.
-
-## Direitos Autorais e Privacidade
-
-Ao realizar web scraping, é importante considerar os direitos autorais e a privacidade das informações coletadas. O conteúdo disponível em sites, incluindo o Twitter, pode ser protegido por direitos autorais, e a reprodução ou divulgação não autorizada desse conteúdo pode violar a lei de direitos autorais. Além disso, a coleta de informações pessoais ou privadas de indivíduos sem o devido consentimento também pode violar a privacidade.
-
-## Curriculum Vitae e GitHub
-
-Ao incluir informações sobre projetos de web scraping no seu currículo, é essencial ser transparente e fornecer detalhes claros sobre a natureza do projeto. É recomendado informar que o web scraping foi realizado exclusivamente para fins educacionais, com o objetivo de adquirir conhecimento e habilidades técnicas. É importante enfatizar que o scraping não foi realizado com intenções comerciais, prejudiciais ou de violação de privacidade.
-
-## Conformidade Legal
-
-Ao se envolver em qualquer atividade de web scraping, é crucial garantir a conformidade com as leis e regulamentações aplicáveis. Isso inclui leis de direitos autorais, proteção de dados, privacidade e outras leis relacionadas à coleta e uso de informações online. É responsabilidade do usuário compreender e seguir as leis locais, regionais e internacionais relevantes.
-
-## Aconselhamento Jurídico
-
-As informações fornecidas aqui não substituem o aconselhamento jurídico profissional. Se você tiver dúvidas específicas sobre a legalidade do web scraping ou qualquer outra atividade relacionada à coleta e uso de dados, recomenda-se consultar um advogado especializado em direito digital ou propriedade intelectual. Um advogado experiente poderá fornecer orientações personalizadas com base nas leis e regulamentações do seu país ou região.
-
-### Conclusão
-
-O web scraping é uma prática complexa e sujeita a várias considerações legais. Ao se envolver em projetos de web scraping, é essencial agir de forma ética, respeitando os direitos dos proprietários de sites e cumprindo as leis e regulamentações aplicáveis. A obtenção de permissão adequada e o respeito às políticas de uso dos serviços online são fundamentais para garantir a conformidade legal.
+### Contato
+Para mais informações sobre o Projeto Hermes ou para entrar em contato com o desenvolvedor Alex Lira, você pode acessar o seu perfil no GitHub
