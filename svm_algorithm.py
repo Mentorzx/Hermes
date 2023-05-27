@@ -4,63 +4,80 @@ from sklearn.model_selection import train_test_split
 from sklearn.svm import SVC
 from sklearn.metrics import classification_report
 
-# Carregar o dataset contendo ironias
-data = pd.read_csv('irony_dataset.csv')
 
-# Carregar o banco de dados de palavras positivas e negativas
-sentiment_data = pd.read_csv('sentiment_words.csv')
+class SvmThinker:
+    """
+    A class that uses Support Vector Machines (SVM) for tweet classification.
+    """
 
-# Pré-processamento dos dados, se necessário
-# ...
+    def __init__(self):
+        """
+        Initialize the SvmThinker object.
+        """
+        self.vectorizer = TfidfVectorizer()
+        self.svm = SVC(kernel='linear')
+        self.positive_words = []
+        self.negative_words = []
 
-# Separar features e labels
-X = data['tweet_text']
-y = data['irony_label']
+    def load_data(self):
+        """
+        Load the dataset and sentiment words.
+        """
+        self.data = pd.read_csv('datasets/speech_figures.csv')
+        self.sentiment_data = pd.read_csv('datasets/sentiment_words.csv')
 
-# Vetorizar os tweets utilizando o TF-IDF
-vectorizer = TfidfVectorizer()
-X = vectorizer.fit_transform(X)
+    def preprocess_data(self):
+        """
+        Preprocess the data if necessary.
+        """
+        pass
 
-# Dividir o dataset em conjunto de treinamento e teste
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=42)
+    def train_model(self):
+        """
+        Train the SVM model.
+        """
+        X = self.data['tweet_text']
+        y = self.data['irony_label']
+        X = self.vectorizer.fit_transform(X)
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=0.2, random_state=42)
+        self.svm.fit(X_train, y_train)
 
-# Treinar o modelo SVM
-svm = SVC(kernel='linear')
-svm.fit(X_train, y_train)
+    def load_sentiment_words(self):
+        """
+        Load the positive and negative sentiment words.
+        """
+        self.positive_words = self.sentiment_data['positive_words'].tolist()
+        self.negative_words = self.sentiment_data['negative_words'].tolist()
 
-# Carregar as palavras positivas e negativas
-positive_words = sentiment_data['positive_words'].tolist()
-negative_words = sentiment_data['negative_words'].tolist()
+    def classify_tweets(self, subject, tweets):
+        """
+        Classify the given tweets based on the trained model and sentiment words.
 
-# Classificar novos tweets fornecidos pelo usuário
-subject = input("Digite o assunto a ser analisado: ")
-tweets = [input("Digite um tweet: ")
-          for _ in range(10)]  # Exemplo com 10 tweets
+        Args:
+            subject (str): The subject to analyze.
+            tweets (list[str]): The list of tweets to classify.
+        """
+        X_new = self.vectorizer.transform(tweets)
+        predictions = self.svm.predict(X_new)
+        positive_tweets = 0
+        negative_tweets = 0
+        for i in range(len(predictions)):
+            if predictions[i] == 'positivo':
+                positive_tweets += 1
+            elif predictions[i] == 'negativo':
+                negative_tweets += 1
+            else:  # Handling for ironic tweets
+                tweet_words = tweets[i].lower().split()
+                positive_count = sum(
+                    word in self.positive_words for word in tweet_words)
+                negative_count = sum(
+                    word in self.negative_words for word in tweet_words)
 
-# Vetorizar e classificar os novos tweets
-X_new = vectorizer.transform(tweets)
-predictions = svm.predict(X_new)
+                if positive_count > negative_count:
+                    negative_tweets += 1
+                else:
+                    positive_tweets += 1
 
-# Contar a quantidade de tweets positivos e negativos
-positive_tweets = 0
-negative_tweets = 0
-
-for i in range(len(predictions)):
-    if predictions[i] == 'positivo':
-        positive_tweets += 1
-    elif predictions[i] == 'negativo':
-        negative_tweets += 1
-    else:  # Tratamento para tweets irônicos
-        tweet_words = tweets[i].lower().split()
-        positive_count = sum(word in positive_words for word in tweet_words)
-        negative_count = sum(word in negative_words for word in tweet_words)
-
-        if positive_count > negative_count:
-            negative_tweets += 1
-        else:
-            positive_tweets += 1
-
-# Imprimir resultados
-print(f"Total de tweets positivos sobre '{subject}': {positive_tweets}")
-print(f"Total de tweets negativos sobre '{subject}': {negative_tweets}")
+        print(f"Total positive tweets about '{subject}': {positive_tweets}")
+        print(f"Total negative tweets about '{subject}': {negative_tweets}")
