@@ -30,7 +30,8 @@ class SvmThinker:
         """
         try:
             self.logger.info("Loading data...")
-            self.data = pd.read_csv('datasets/translated_speech_figures.csv')
+            self.data = pd.read_csv(
+                'datasets/translated_speech_figures.csv', delimiter=';')
             self.sentiment_data = pd.read_csv(
                 'datasets/translated_sentiment_words.csv')
         except Exception as e:
