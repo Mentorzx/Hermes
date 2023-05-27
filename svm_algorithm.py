@@ -105,10 +105,6 @@ class SvmThinker:
                         negative_tweets += 1
                     else:
                         positive_tweets += 1
-            self.logger.info(
-                f"Total positive tweets about '{subject}': {positive_tweets}")
-            self.logger.info(
-                f"Total negative tweets about '{subject}': {negative_tweets}")
             return positive_tweets, negative_tweets
         except Exception as e:
             self.logger.error(
