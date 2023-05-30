@@ -36,15 +36,13 @@ class TwitterScraper:
             email = WebDriverWait(driver, 5).until(
                 EC.visibility_of_element_located((By.CSS_SELECTOR, "input[name='text']")))
             email.send_keys(login)
-            driver.find_elements(
-                By.CSS_SELECTOR, "[role='button']")[2].click()
+            email.send_keys(Keys.RETURN)
             if EC.text_to_be_present_in_element((By.XPATH, "//span[contains(text(), 'Houve um acesso incomum à sua conta')]"),
                                                 'Houve um acesso incomum à sua conta. Para ajudar a mantê-la protegida, insira seu número de celular ou endereço de e-mail para confirmar que é você.'):
                 email = WebDriverWait(driver, 5).until(
                     EC.visibility_of_element_located((By.CSS_SELECTOR, "input[name='text']")))
                 email.send_keys(login[:-10])
-                driver.find_elements(By.CSS_SELECTOR, "[role='button']")[
-                    1].click()
+                email.send_keys(Keys.RETURN)
             password_input = WebDriverWait(driver, 5).until(
                 EC.visibility_of_element_located((By.CSS_SELECTOR, "input[name='password']")))
             password_input.send_keys(password)

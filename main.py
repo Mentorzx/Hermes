@@ -165,6 +165,7 @@ def get_trends_sentiment():
     results = []
     config = load_config()
     validate_api_key(config)
+    logger = logging.getLogger()
     trends = get_twitter_trends()
     words = process_twitter_data(trends, config, logger)
     for trend in words:
