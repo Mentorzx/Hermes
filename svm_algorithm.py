@@ -36,7 +36,7 @@ class SvmThinker:
                 'datasets/translated_sentiment_words.csv', encoding='utf-8')
         except Exception as e:
             self.logger.error(f"Error occurred while loading data: {str(e)}")
-            raise
+            exit()
 
     def preprocess_data(self):
         """
@@ -59,7 +59,7 @@ class SvmThinker:
             self.logger.info("Successfully trained model!")
         except Exception as e:
             self.logger.error(f"Error occurred while training model: {str(e)}")
-            raise
+            exit()
 
     def load_sentiment_words(self) -> None:
         """
@@ -74,7 +74,7 @@ class SvmThinker:
         except Exception as e:
             self.logger.error(
                 f"Error occurred while loading sentiment words: {str(e)}")
-            raise
+            exit()
 
     def classify_tweets(self, subject: str, tweets: list[str]) -> tuple[int, int]:
         """
@@ -109,4 +109,4 @@ class SvmThinker:
         except Exception as e:
             self.logger.error(
                 f"Error occurred while classifying tweets: {str(e)}")
-            raise
+            exit()

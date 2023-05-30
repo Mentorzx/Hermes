@@ -25,7 +25,7 @@ def get_twitter_trends() -> list[str]:
         return trends
     except Exception as e:
         logging.error(f"Error occurred while getting Twitter trends: {str(e)}")
-        raise
+        exit()
 
 
 def load_config() -> dict[str, str]:
@@ -41,7 +41,7 @@ def load_config() -> dict[str, str]:
         return config
     except Exception as e:
         logging.error(f"Error occurred while loading configuration: {str(e)}")
-        raise
+        exit()
 
 
 def process_twitter_data(words: list[str], config: dict[str, str], logger) -> dict[str, list[int]]:
@@ -81,7 +81,7 @@ def process_twitter_data(words: list[str], config: dict[str, str], logger) -> di
     except Exception as e:
         logger.error(
             f"Error occurred during Twitter data processing: {str(e)}")
-        raise
+        exit()
 
 
 def validate_api_key(config: dict[str, str]):
@@ -197,4 +197,4 @@ if __name__ == "__main__":
         app.run()  # Start the Flask application
     except BaseException as e:
         logger.error(f"Error occurred in the main process: {str(e)}")
-        raise
+        exit()

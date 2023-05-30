@@ -27,7 +27,7 @@ class TwitterScraper:
         except Exception as e:
             self.logger.error(
                 f"Error occurred while getting website: {str(e)}")
-            raise
+            exit()
 
     def get_login(self, url: str, login: str, password: str):
         try:
@@ -54,7 +54,7 @@ class TwitterScraper:
             return driver
         except Exception as e:
             self.logger.error(f"Error occurred during website login: {str(e)}")
-            raise
+            exit()
 
     def get_tweets(self, search_query: list[str]) -> dict[str, set[str]]:
         try:
@@ -77,7 +77,7 @@ class TwitterScraper:
                 except WebDriverException:
                     self.logger.error(
                         "Tweets didn't appear! Closing app...")
-                    raise
+                    exit()
                 wait = WebDriverWait(self.driver, 10)
                 self.logger.info("Collecting tweets...")
                 time.sleep(1)
@@ -92,7 +92,7 @@ class TwitterScraper:
                 except WebDriverException:
                     self.logger.error(
                         "Tweets didn't appear! Closing app...")
-                    raise
+                    exit()
                 for tweet in tweets:
                     try:
                         tweet_text = WebDriverWait(tweet, 10).until(EC.presence_of_element_located(
