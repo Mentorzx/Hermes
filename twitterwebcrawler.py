@@ -17,7 +17,11 @@ class TwitterScraper:
     def get_website(self, url: str):
         try:
             self.logger.info(f"Getting website: {url}")
-            driver = webdriver.Chrome()
+            chrome_options = webdriver.ChromeOptions()
+            chrome_options.add_argument("--no-sandbox")
+            chrome_options.add_argument("--headless")
+            chrome_options.add_argument("--disable-gpu")
+            driver = webdriver.Chrome(options=chrome_options)
             driver.get(url)
             return driver
         except Exception as e:
@@ -32,14 +36,15 @@ class TwitterScraper:
             email = WebDriverWait(driver, 5).until(
                 EC.visibility_of_element_located((By.CSS_SELECTOR, "input[name='text']")))
             email.send_keys(login)
-            driver.find_element(By.XPATH, "//span[text()='Avançar']").click()
+            driver.find_elements(
+                By.CSS_SELECTOR, "[role='button']")[2].click()
             if EC.text_to_be_present_in_element((By.XPATH, "//span[contains(text(), 'Houve um acesso incomum à sua conta')]"),
                                                 'Houve um acesso incomum à sua conta. Para ajudar a mantê-la protegida, insira seu número de celular ou endereço de e-mail para confirmar que é você.'):
                 email = WebDriverWait(driver, 5).until(
                     EC.visibility_of_element_located((By.CSS_SELECTOR, "input[name='text']")))
                 email.send_keys(login[:-10])
-                driver.find_element(
-                    By.XPATH, "//span[text()='Avançar']").click()
+                driver.find_elements(By.CSS_SELECTOR, "[role='button']")[
+                    1].click()
             password_input = WebDriverWait(driver, 5).until(
                 EC.visibility_of_element_located((By.CSS_SELECTOR, "input[name='password']")))
             password_input.send_keys(password)
