@@ -33,23 +33,28 @@ class TwitterScraper:
         try:
             self.logger.info("Logging in website...")
             driver = self.get_website(url)
+            self.logger.info("Entering email...")
             email = WebDriverWait(driver, 5).until(
                 EC.visibility_of_element_located((By.CSS_SELECTOR, "input[name='text']")))
             email.send_keys(login)
             email.send_keys(Keys.RETURN)
-            if EC.text_to_be_present_in_element((By.XPATH, "//span[contains(text(), 'Houve um acesso incomum à sua conta')]"),
-                                                'Houve um acesso incomum à sua conta. Para ajudar a mantê-la protegida, insira seu número de celular ou endereço de e-mail para confirmar que é você.'):
+            if EC.presence_of_element_located((By.CSS_SELECTOR, '[data-testid="ocfEnterTextTextInput"]')):
+                self.logger.info("Handling unusual access...")
                 email = WebDriverWait(driver, 5).until(
                     EC.visibility_of_element_located((By.CSS_SELECTOR, "input[name='text']")))
                 email.send_keys(login[:-10])
                 email.send_keys(Keys.RETURN)
+            self.logger.info("Entering password...")
             password_input = WebDriverWait(driver, 5).until(
                 EC.visibility_of_element_located((By.CSS_SELECTOR, "input[name='password']")))
             password_input.send_keys(password)
             password_input.send_keys(Keys.RETURN)
             time.sleep(2)
-            self.logger.info("Website login successful.")
-            return driver
+            if EC.presence_of_element_located((By.CSS_SELECTOR, '[data-testid="tweetTextarea_0RichTextInputContainer"]')):
+                self.logger.info("Website login successful.")
+                return driver
+            else:
+                raise BaseException("Something Wrong")
         except Exception as e:
             self.logger.error(f"Error occurred during website login: {str(e)}")
             exit()
@@ -74,7 +79,7 @@ class TwitterScraper:
                         (By.CSS_SELECTOR, '[data-testid="tweetText"]')))
                 except WebDriverException:
                     self.logger.error(
-                        "Tweets didn't appear! Closing app...")
+                        f"Tweets didn't appear! Report 1: {self.driver.find_element(By.TAG_NAME, 'body').text}")
                     exit()
                 wait = WebDriverWait(self.driver, 10)
                 self.logger.info("Collecting tweets...")
@@ -89,7 +94,7 @@ class TwitterScraper:
                         (By.CSS_SELECTOR, '[data-testid="tweet"]')))
                 except WebDriverException:
                     self.logger.error(
-                        "Tweets didn't appear! Closing app...")
+                        f"Tweets didn't appear! Report 2: {self.driver.find_element(By.TAG_NAME, 'body').text}")
                     exit()
                 for tweet in tweets:
                     try:
@@ -105,4 +110,4 @@ class TwitterScraper:
             return data_dict
         except Exception as e:
             self.logger.error(f"Error occurred while getting tweets: {str(e)}")
-            return {}
+            exit()
