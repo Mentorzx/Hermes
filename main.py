@@ -47,7 +47,7 @@ def load_config() -> dict[str, str]:
         exit()
 
 
-def separate_tweets_by_keywords(keyword_list) -> pd.DataFrame:
+def separate_tweets_by_keywords(keyword_list, logger) -> pd.DataFrame:
     """
     Reads a CSV file named 'tweets_trained.csv' located in the 'datasets' folder within 'datasets.zip' and separates the tweets based on the provided keyword list.
 
@@ -113,7 +113,7 @@ def process_twitter_data(
         #     else:
         #         v = list(v)
         #     filled_tweets_dict[k] = v
-        df = separate_tweets_by_keywords(words)
+        df = separate_tweets_by_keywords(words, logger)
         thinker = SvmThinker(logger=logger)
         thinker.load_data()
         thinker.preprocess_data()
@@ -151,59 +151,44 @@ def validate_api_key(config: dict[str, str]):
         abort(401, "Unauthorized")
 
 
-@app.route("/irony", methods=["POST"])
-def check_irony():
+@app.route("/search", methods=["POST"])
+def search_tweets():
     """
-    Check if a tweet is ironic.
+    Search tweets based on a keyword.
 
     Request JSON:
     {
-        "tweet": "Tweet text"
-    }
-
-    Response JSON:
-    {
-        "is_ironic": true or false
-    }
-    """
-    # tweet = request.json["tweet"]
-    # # Implement irony checking logic here
-    # is_ironic = False  # Placeholder
-
-    # return jsonify({"is_ironic": is_ironic})
-    abort(400, "Function not implemented yet")
-
-
-@app.route("/sentiment", methods=["POST"])
-def analyze_sentiment():
-    """
-    Analyze the sentiment of a list of tweets.
-
-    Request JSON:
-    {
-        "tweets": ["Tweet 1", "Tweet 2", ...]
+        "keyword": "Keyword"
     }
 
     Response JSON:
     {
         "results": [
             {
+                "trend": "keyword",
                 "positive_count": 10,
-                "negative_count": 5
-            },
-            ...
+                "negative_count": 5,
+                "tweet_types": {"ironic": ["tweet 1", ...], "sarcasm": ["tweet 2", ...], "regular": ["tweet 3", ...], "figurative": ["tweet 4", ...]}
+            }
         ]
     }
     """
-    # tweets = request.json["tweets"]
-    # results = []
-
-    # for trend in trends:
-    #     positive_count, negative_count = process_tweet_data(trend, tweets)
-    #     results.append({"positive_count": positive_count, "negative_count": negative_count})
-
-    # return jsonify({"results": results})
-    abort(400, "Function not implemented yet")
+    config = load_config()
+    logger = logging.getLogger()
+    request_data = request.get_json()
+    if request_data and "keyword" in request_data:
+        keyword = request_data["keyword"]
+        word = process_twitter_data([keyword], config, logger)
+        keyword_data = word.get(keyword, [0, 0, {}])
+        result = {
+            "trend": keyword,
+            "positive_count": keyword_data[0],
+            "negative_count": keyword_data[1],
+            "tweet_types": keyword_data[2],
+        }
+        return jsonify({"results": [result]})
+    else:
+        abort(400, "Missing 'keyword' parameter in the request")
 
 
 @app.route("/trends", methods=["GET"])
@@ -226,7 +211,7 @@ def get_trends_sentiment():
     """
     results = []
     config = load_config()
-    validate_api_key(config)
+    # validate_api_key(config)
     logger = logging.getLogger()
     trends = get_twitter_trends()
     words = process_twitter_data(trends, config, logger)
