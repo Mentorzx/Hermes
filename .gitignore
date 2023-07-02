@@ -2,3 +2,4 @@ config.yml
 logging.log
 api.py
 presentations
+datasets/tweets_trained.csv
