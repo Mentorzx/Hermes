@@ -7,8 +7,9 @@ from typing import Union
 import snscrape.modules.twitter as sntwitter
 import pandas as pd
 import logging
+import zipfile
 import yaml
-
+import io
 
 app = Flask(__name__)
 
@@ -46,9 +47,9 @@ def load_config() -> dict[str, str]:
         exit()
 
 
-def separate_tweets_by_keywords(keyword_list):
+def separate_tweets_by_keywords(keyword_list) -> pd.DataFrame:
     """
-    Reads a CSV file named 'tweets_trained.csv' located in the 'datasets' folder and separates the tweets based on the provided keyword list.
+    Reads a CSV file named 'tweets_trained.csv' located in the 'datasets' folder within 'datasets.zip' and separates the tweets based on the provided keyword list.
 
     Args:
         keyword_list (list[str]): A list of keywords to search for in the tweets.
@@ -60,19 +61,29 @@ def separate_tweets_by_keywords(keyword_list):
         keyword_list = ['bummer', 'outside']
         filtered_df = separate_tweets_by_keywords(keyword_list)
 
-    The function reads the CSV file located in the 'datasets' folder and searches for each keyword in the 'text' column of the DataFrame.
+    The function reads the CSV file located in the 'datasets' folder within 'datasets.zip' and searches for each keyword in the 'text' column of the DataFrame.
     It creates a new DataFrame with the tweets that contain any of the provided keywords.
     The 'word' column in the DataFrame represents the keyword associated with each tweet.
 
     Note:
-        The CSV file must be in the 'datasets' folder relative to the script executing this function.
+        The CSV file must be located within the 'datasets' folder in 'datasets.zip'.
         The function assumes that the CSV file has the following columns: 'target', 'ids', 'date', 'flag', 'user', 'text'.
     """
-    df = pd.read_csv(
-        "datasets/tweets_trained.csv",
-        encoding="latin-1",
-        names=["target", "ids", "date", "flag", "user", "text"],
-    )
+    try:
+        logger.info("Loading trained data...")
+        with open("datasets/datasets.zip", "rb") as zip_file:
+            conteudo_zip = zip_file.read()
+        arquivo_zip = io.BytesIO(conteudo_zip)
+        with zipfile.ZipFile(arquivo_zip, "r") as zip_ref:
+            with zip_ref.open("tweets_trained.csv") as file:
+                df = pd.read_csv(
+                    file,
+                    encoding="latin-1",
+                    names=["target", "ids", "date", "flag", "user", "text"],
+                )
+    except BaseException as e:
+        logger.error(f"Error occurred while loading data: {str(e)}")
+        exit()
     filtered_df = pd.DataFrame(columns=["word"] + df.columns.tolist())
     for keyword in keyword_list:
         filtered_tweets = df[df["text"].str.contains(keyword, case=False)]

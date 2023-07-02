@@ -9,9 +9,11 @@ from collections import Counter
 from langdetect import detect
 from sklearn.svm import SVC
 import pandas as pd
+import zipfile
 import logging
 import nltk
 import re
+import io
 
 
 class SvmThinker:
@@ -38,12 +40,14 @@ class SvmThinker:
         """
         try:
             self.logger.info("Loading data...")
-            # dataset that contains one column with one tweet and another column that contains the respective speech figure (irony, regular, figurative or sarcasm)
-            self.data = pd.read_csv("datasets/speech_figures.csv", encoding="utf-8")
-            # dataset that contains one column with positive words and another column that contains the negative words
-            self.sentiment_data = pd.read_csv(
-                "datasets/sentiment_words.csv", encoding="utf-8"
-            )
+            with open("datasets/datasets.zip", "rb") as zip_file:
+                conteudo_zip = zip_file.read()
+            arquivo_zip = io.BytesIO(conteudo_zip)
+            with zipfile.ZipFile(arquivo_zip, "r") as zip_ref:
+                with zip_ref.open("speech_figures.csv") as file:
+                    self.data = pd.read_csv(file, encoding="utf-8")
+                with zip_ref.open("sentiment_words.csv") as file:
+                    self.sentiment_data = pd.read_csv(file, encoding="utf-8")
         except BaseException as e:
             self.logger.error(f"Error occurred while loading data: {str(e)}")
             exit()
