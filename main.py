@@ -11,7 +11,40 @@ import zipfile
 import yaml
 import io
 
+
 app = Flask(__name__)
+
+
+def configure_logging(log_filename: str) -> logging.Logger:
+    log_formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+    log_handler = RotatingFileHandler(
+        log_filename,
+        mode="a",
+        maxBytes=10 * 1024 * 1024,
+        backupCount=2,
+        encoding="utf-8",
+    )
+    log_handler.setFormatter(log_formatter)
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+    logger.addHandler(log_handler)
+    return logger
+
+
+def load_config() -> dict[str, str]:
+    """
+    Load the configuration from the config.yml file.
+
+    Returns:
+        dict: Configuration dictionary.
+    """
+    try:
+        with open("config.yml", encoding="utf-8") as f:
+            config = yaml.safe_load(f)
+        return config
+    except Exception as e:
+        logging.error(f"Error occurred while loading configuration: {str(e)}")
+        exit()
 
 
 def get_twitter_trends() -> list[str]:
@@ -31,23 +64,16 @@ def get_twitter_trends() -> list[str]:
         exit()
 
 
-def load_config() -> dict[str, str]:
-    """
-    Load the configuration from the config.yml file.
-
-    Returns:
-        dict: Configuration dictionary.
-    """
-    try:
-        with open("config.yml", encoding="utf-8") as f:
-            config = yaml.safe_load(f)
-        return config
-    except Exception as e:
-        logging.error(f"Error occurred while loading configuration: {str(e)}")
-        exit()
+def train_thinker() -> SvmThinker:
+    thinker = SvmThinker(logger)
+    thinker.load_data()
+    thinker.preprocess_data()
+    thinker.load_sentiment_words()
+    thinker.train_model()
+    return thinker
 
 
-def separate_tweets_by_keywords(keyword_list, logger) -> pd.DataFrame:
+def separate_tweets_by_keywords(keyword_list: list[str]) -> pd.DataFrame:
     """
     Reads a CSV file named 'tweets_trained.csv' located in the 'datasets' folder within 'datasets.zip' and separates the tweets based on the provided keyword list.
 
@@ -93,7 +119,7 @@ def separate_tweets_by_keywords(keyword_list, logger) -> pd.DataFrame:
 
 
 def process_twitter_data(
-    words: list[str], config: dict[str, str], logger
+    words: list[str], thinker: SvmThinker
 ) -> dict[str, list[Union[int, dict[str, str]]]]:
     """
     Process Twitter data: collect tweets for each trend, store them in a pandas DataFrame,
@@ -113,12 +139,7 @@ def process_twitter_data(
         #     else:
         #         v = list(v)
         #     filled_tweets_dict[k] = v
-        df = separate_tweets_by_keywords(words, logger)
-        thinker = SvmThinker(logger=logger)
-        thinker.load_data()
-        thinker.preprocess_data()
-        thinker.load_sentiment_words()
-        thinker.train_model()
+        df = separate_tweets_by_keywords(words)
         for word in words:
             tweets = df.loc[df["word"] == word, "text"].tolist()
             targets = df.loc[df["word"] == word, "target"].tolist()
@@ -173,12 +194,11 @@ def search_tweets():
         ]
     }
     """
-    config = load_config()
-    logger = logging.getLogger()
+    # validate_api_key(config)
     request_data = request.get_json()
     if request_data and "keyword" in request_data:
         keyword = request_data["keyword"]
-        word = process_twitter_data([keyword], config, logger)
+        word = process_twitter_data([keyword], thinker)
         keyword_data = word.get(keyword, [0, 0, {}])
         result = {
             "trend": keyword,
@@ -209,12 +229,10 @@ def get_trends_sentiment():
         ]
     }
     """
-    results = []
-    config = load_config()
     # validate_api_key(config)
-    logger = logging.getLogger()
+    results = []
     trends = get_twitter_trends()
-    words = process_twitter_data(trends, config, logger)
+    words = process_twitter_data(trends, thinker)
     for trend in words:
         trend_data = words.get(
             trend,
@@ -231,28 +249,14 @@ def get_trends_sentiment():
     return jsonify({"results": results})
 
 
-def configure_logging(log_filename: str) -> logging.Logger:
-    log_formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-    log_handler = RotatingFileHandler(
-        log_filename,
-        mode="a",
-        maxBytes=10 * 1024 * 1024,
-        backupCount=2,
-        encoding="utf-8",
-    )
-    log_handler.setFormatter(log_formatter)
-    logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
-    logger.addHandler(log_handler)
-    return logger
+config = load_config()
+logger = configure_logging("logging.log")
+thinker = train_thinker()
 
 
 if __name__ == "__main__":
-    log_filename = "logging.log"
-    logger = configure_logging(log_filename)
     try:
-        config = load_config()
-        app.run()  # Start the Flask application
+        app.run()
     except BaseException as e:
         logger.error(f"Error occurred in the main process: {str(e)}")
         exit()
