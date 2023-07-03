@@ -125,8 +125,11 @@ def separate_tweets_by_keywords(keyword_list: list[str]) -> pd.DataFrame:
     keyword_pattern = "|".join(keyword_list)
     keyword_mask = df["text"].str.contains(keyword_pattern, case=False, regex=True)
     filtered_df = df[keyword_mask].copy()
-    filtered_df["word"] = filtered_df["text"].str.extract(
-        f"({keyword_pattern})", flags=re.IGNORECASE
+    filtered_df["word"] = (
+        filtered_df["text"]
+        .str.extractall(f"({keyword_pattern})", flags=re.IGNORECASE)
+        .groupby(level=0)
+        .apply(lambda x: ",".join(x[0]))
     )
     logger.info("Trained data handling for dataframe finished!")
     return filtered_df
