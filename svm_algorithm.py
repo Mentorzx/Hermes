@@ -172,7 +172,9 @@ class SvmThinker:
                 )
                 if prediction == "ironic":
                     positive_count, negative_count = negative_count, positive_count
-                if positive_count > negative_count:
+                elif prediction == "sarcasm":
+                    negative_tweets += 1
+                elif positive_count > negative_count:
                     positive_tweets += 1
                 else:
                     negative_tweets += 1
