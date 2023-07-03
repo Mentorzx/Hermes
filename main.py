@@ -234,6 +234,14 @@ def validate_api_key(config: dict[str, str]):
         abort(401, "Unauthorized")
 
 
+@app.route("/clear_cache", methods=["POST"])
+def clear_cache():
+    # validate_api_key(config)
+    trends_cache.clear()
+    logging.info("Cache Cleared.")
+    return jsonify({"message": "Cache cleared."})
+
+
 @app.route("/search", methods=["POST"])
 def search_tweets():
     """
@@ -325,13 +333,16 @@ def get_trends():
         ("Potato" as an exemple)
         curl -X POST -H "Content-Type: application/json" -H "{insert key here without "}"}" -d '{"keyword": "potato"}' http://hermesproject.pythonanywhere.com/search
 
-        2. Get the sentiment of the trends:]
+        2. Get the sentiment of the trends:
         curl -X GET -H "{insert key here without "}"}" http://hermesproject.pythonanywhere.com/trends
 
         3. Get only the trends (without sentiment):
         curl -X GET -H "{insert key here without "}"}" http://hermesproject.pythonanywhere.com/
 
         The above changes add the option to specify the page on which you want to get trend sentiment. Simply replace `{insert key here without "}"}` with the correct key from the `config.yml` file and insert the desired page number in `?page=1` (for example, `?page=1` for the first page, `?page=2` for the second page, and so on).
+
+        To clear the cache, you can use the following command:
+        curl -X POST http://hermesproject.pythonanywhere.com/clear_cache
 
         Please remember to follow the applicable policies and terms of use when using the API.
 
@@ -358,6 +369,10 @@ def get_trends_sentiment():
     trends_per_page = 5
     total_results = 20
     total_pages = math.ceil(total_results / trends_per_page)
+    if page in trends_cache:
+        json = jsonify(trends_cache[page])
+        logging.info(f"Cache hit for page: {page}: {trends_cache[page]}")
+        return json
     trends = get_twitter_trends()
 
     def validate_page(func):
@@ -377,10 +392,6 @@ def get_trends_sentiment():
 
     @validate_page
     def get_page_response(page):
-        if page in trends_cache:
-            json = jsonify(trends_cache[page])
-            logging.info(f"Cache hit for page: {page}: {trends_cache[page]}")
-            return json
         start_index, end_index = get_page_index(page)
         trends_search = trends[start_index:end_index]
         results = process_trends_search(trends_search)
