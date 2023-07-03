@@ -94,12 +94,13 @@ class SvmThinker:
             self.logger.error(f"Error occurred while preprocessing data: {str(e)}")
             exit()
 
-    def train_model(self) -> None:
+    def train_model(self) -> dict[str, int]:
         """
         Train the SVM model.
         """
         try:
             self.logger.info("Training model...")
+            metrics_trained = {}
             X = self.data["tweet_text"]
             y = self.data["class_label"].fillna("")
             X = self.vectorizer.fit_transform(X)
@@ -108,17 +109,22 @@ class SvmThinker:
             )
             self.svm.fit(X_train, y_train)
             y_pred = self.svm.predict(X_test)
-            accuracy = metrics.accuracy_score(y_test, y_pred) * 100
-            precision = (
+            metrics_trained["accuracy"] = metrics.accuracy_score(y_test, y_pred) * 100
+            metrics_trained["precision"] = (
                 metrics.precision_score(y_test, y_pred, average="weighted") * 100
             )
-            recall = metrics.recall_score(y_test, y_pred, average="weighted") * 100
-            f1_score = metrics.f1_score(y_test, y_pred, average="weighted") * 100
+            metrics_trained["recall"] = (
+                metrics.recall_score(y_test, y_pred, average="weighted") * 100
+            )
+            metrics_trained["f1_score"] = (
+                metrics.f1_score(y_test, y_pred, average="weighted") * 100
+            )
             self.logger.info("Successfully trained model!")
-            self.logger.info(f"Accuracy: {accuracy:.2f}%")
-            self.logger.info(f"Precision: {precision:.2f}%")
-            self.logger.info(f"Recall: {recall:.2f}%")
-            self.logger.info(f"F1-Score: {f1_score:.2f}%")
+            self.logger.info(f"Accuracy: {metrics_trained['accuracy']:.2f}%")
+            self.logger.info(f"Precision: {metrics_trained['precision']:.2f}%")
+            self.logger.info(f"Recall: {metrics_trained['recall']:.2f}%")
+            self.logger.info(f"F1-Score: {metrics_trained['f1_score']:.2f}%")
+            return metrics_trained
         except BaseException as e:
             self.logger.error(f"Error occurred while training model: {str(e)}")
             exit()

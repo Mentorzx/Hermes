@@ -20,6 +20,15 @@ app = Flask(__name__)
 
 
 def configure_logging(log_filename: str) -> logging.Logger:
+    """
+    Configure logging settings and return the logger object.
+
+    Args:
+        log_filename (str): The name of the log file.
+
+    Returns:
+        logging.Logger: The logger object.
+    """
     log_formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
     log_handler = RotatingFileHandler(
         log_filename,
@@ -69,13 +78,20 @@ def get_twitter_trends() -> list[str]:
         exit()
 
 
-def train_thinker() -> SvmThinker:
+def train_thinker() -> tuple[SvmThinker, dict[str, int]]:
+    """
+    Train the SvmThinker model and return the trained model and metrics.
+
+    Returns:
+        tuple[SvmThinker, dict[str, int]]: A tuple containing the trained SvmThinker model
+        and a dictionary of metrics.
+    """
     thinker = SvmThinker(logger)
     thinker.load_data()
     thinker.preprocess_data()
     thinker.load_sentiment_words()
-    thinker.train_model()
-    return thinker
+    metrics = thinker.train_model()
+    return thinker, metrics
 
 
 def separate_tweets_by_keywords(keyword_list: list[str]) -> pd.DataFrame:
@@ -142,13 +158,18 @@ def process_twitter_data(
     words: list[str], thinker: SvmThinker
 ) -> dict[str, list[Union[int, dict[str, str]]]]:
     """
-    Process Twitter data: collect tweets for each trend, store them in a pandas DataFrame,
-    and use the SvmThinker class to process the data.
+    Process Twitter data for the given words using the SvmThinker model.
+
+    Args:
+        words (list[str]): A list of words to process.
+        thinker (SvmThinker): The SvmThinker model used for processing.
+
+    Returns:
+        dict[str, list[Union[int, dict[str, str]]]]: A dictionary containing the results
+        of the Twitter data processing for each word.
     """
     try:
         result = {}
-        result_compare = {}
-        positive, negative = 0, 0
         # scrapper = TwitterScraper(config, logger=logger)
         # tweets_dict = scrapper.get_tweets(words)
         # max_len = max(len(v) for v in tweets_dict.values())
@@ -166,32 +187,7 @@ def process_twitter_data(
             targets = df.loc[df["word"] == word, "target"].tolist()
             positive = len([x for x in targets if x > 2])
             negative = len([x for x in targets if x <= 2])
-            positive_count, negative_count, tweets_types = thinker.classify_tweets(
-                word, tweets
-            )
-            if len(tweets_types) > 0:
-                logger.info(
-                    f"Total trained-positive tweets about '{word}': {positive_count}"
-                )
-                logger.info(f"Total real-positive tweets about '{word}': {positive}")
-                logger.info(
-                    f"Total trained-negative tweets about '{word}': {negative_count}"
-                )
-                logger.info(f"Total real-negative tweets about '{word}': {negative}")
-                if positive_count <= positive:
-                    positive_ac = positive_count
-                else:
-                    positive_ac = positive
-                if negative_count <= negative:
-                    negative_ac = negative_count
-                else:
-                    negative_ac = negative
-                logger.warning(
-                    f"{(((positive_ac+negative_ac)/(positive+negative))*100):.2f}% precision"
-                )
-                logger.info(f"Total tweets types about '{word}': {tweets_types}")
-            result[f"{word}"] = [positive_count, negative_count, tweets_types]
-            result_compare[f"{word}"] = [positive, negative]
+            result[word] = process_tweets_by_word(word, tweets, positive, negative)
         logger.info("Twitter data processed!")
         return result
     except Exception as e:
@@ -199,7 +195,77 @@ def process_twitter_data(
         exit()
 
 
-def process_trends_search(trends_search: list[str]) -> list:
+def process_tweets_by_word(
+    word: str, tweets: list[str], positive: int, negative: int
+) -> list[Union[int, dict[str, str]]]:
+    """
+    Process the tweets for a given word using the SvmThinker class and return the results.
+
+    Args:
+        word (str): The word being processed.
+        tweets (list[str]): A list of tweets to process.
+        positive (int): The number of positive tweets.
+        negative (int): The number of negative tweets.
+
+    Returns:
+        list[Union[int, dict[str, str]]]: A list containing the results of the tweet processing.
+    """
+    positive_count, negative_count, tweets_types = thinker.classify_tweets(word, tweets)
+    if len(tweets_types) > 0:
+        log_metrics_results(
+            word, positive_count, negative_count, positive, negative, tweets_types
+        )
+    return [positive_count, negative_count, tweets_types]
+
+
+def log_metrics_results(
+    word: str,
+    positive_count: int,
+    negative_count: int,
+    positive: int,
+    negative: int,
+    tweets_types: dict[str, str],
+) -> None:
+    """
+    Log the results of the tweet processing for a given word.
+
+    Args:
+        word (str): The word being processed.
+        positive_count (int): The number of positive tweets classified by the SvmThinker model.
+        negative_count (int): The number of negative tweets classified by the SvmThinker model.
+        positive (int): The number of real positive tweets.
+        negative (int): The number of real negative tweets.
+        tweets_types (dict[str, str]): A dictionary containing the types of tweets.
+    """
+    logger.info(f"Total trained-positive tweets about '{word}': {positive_count}")
+    logger.info(f"Total real-positive tweets about '{word}': {positive}")
+    logger.info(f"Total trained-negative tweets about '{word}': {negative_count}")
+    logger.info(f"Total real-negative tweets about '{word}': {negative}")
+    if positive_count <= positive:
+        positive_ac = positive_count
+    else:
+        positive_ac = positive
+    if negative_count <= negative:
+        negative_ac = negative_count
+    else:
+        negative_ac = negative
+    logger.warning(
+        f"{(((positive_ac + negative_ac) / (positive + negative)) * 100):.2f}% precision"
+    )
+    logger.info(f"Total tweets types about '{word}': {tweets_types}")
+
+
+def process_trends_search(trends_search: list[str]) -> list[dict]:
+    """
+    Process the trends search by calling the 'process_twitter_data' function and return the results.
+
+    Args:
+        trends_search (list[str]): A list of trends to search.
+
+    Returns:
+        list: A list of dictionaries containing the results for each trend, including the trend name,
+            positive count, negative count, and tweet types.
+    """
     words = process_twitter_data(trends_search, thinker)
     results = []
     for trend in trends_search:
@@ -216,6 +282,19 @@ def process_trends_search(trends_search: list[str]) -> list:
 
 
 def create_response(page: int = 1, total_pages: int = 1, results: list = []) -> dict:
+    """
+    Create a response dictionary containing pagination information and the results.
+
+    Args:
+        page (int): The current page number (default is 1).
+        total_pages (int): The total number of pages (default is 1).
+        results (list): The list of results (default is an empty list).
+
+    Returns:
+        dict: A dictionary containing the response information, including the total number of pages,
+            the current page number, the results, and the next page URL if applicable.
+
+    """
     response = {
         "total_pages": total_pages,
         "current_page": page,
@@ -228,6 +307,15 @@ def create_response(page: int = 1, total_pages: int = 1, results: list = []) -> 
 
 
 def validate_api_key(config: dict[str, str]):
+    """
+    Validate the API key from the request headers against the configured API key.
+
+    Args:
+        config (dict[str, str]): A dictionary containing the configuration parameters.
+
+    Raises:
+        HTTPException: If the API key is missing or doesn't match the configured API key.
+    """
     api_key = config.get("api_key")
     if "X-API-Key" not in request.headers or request.headers["X-API-Key"] != api_key:
         logger.warning("Unauthorized API Key!")
@@ -236,6 +324,12 @@ def validate_api_key(config: dict[str, str]):
 
 @app.route("/clear_cache", methods=["POST"])
 def clear_cache():
+    """
+    Clear the cache by removing all stored trends from the cache.
+
+    Returns:
+        dict: A JSON response indicating that the cache has been cleared.
+    """
     # validate_api_key(config)
     trends_cache.clear()
     logging.info("Cache Cleared.")
@@ -363,8 +457,30 @@ def get_trends():
     return jsonify(response)
 
 
+@app.route("/metrics", methods=["GET"])
+def get_twitter_metrics():
+    """
+    Get the algorithm metrics.
+
+    Returns:
+        dict: A JSON response containing the Twitter metrics.
+    """
+    try:
+        logging.info(f"Catching metrics: {metrics}")
+        return jsonify(metrics)
+    except Exception as e:
+        logging.error(f"Error while getting metrics: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/trends", methods=["GET"])
 def get_trends_sentiment():
+    """
+    Get the sentiment of Twitter trends.
+
+    Returns:
+        dict: A JSON response containing the sentiment of Twitter trends.
+    """
     page = int(request.args.get("page", 1))
     trends_per_page = 5
     total_results = 20
@@ -392,6 +508,15 @@ def get_trends_sentiment():
 
     @validate_page
     def get_page_response(page):
+        """
+        Get the response for a specific page of Twitter trends.
+
+        Args:
+            page (int): The page number.
+
+        Returns:
+            dict: A JSON response containing the sentiment of Twitter trends for the specified page.
+        """
         start_index, end_index = get_page_index(page)
         trends_search = trends[start_index:end_index]
         results = process_trends_search(trends_search)
@@ -402,6 +527,15 @@ def get_trends_sentiment():
         return json
 
     def process_remaining_pages():
+        """
+        Process the remaining pages of Twitter trends.
+
+        This function is executed in a separate thread to process the remaining pages while the current page
+        response is being returned.
+
+        Returns:
+            None
+        """
         remaining_results = []
         pages = set(range(1, total_pages + 1))
         pages.discard(page)
@@ -423,7 +557,7 @@ def get_trends_sentiment():
 
 config = load_config()
 logger = configure_logging("logging.log")
-thinker = train_thinker()
+thinker, metrics = train_thinker()
 trends_cache = {}
 
 
