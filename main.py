@@ -9,6 +9,7 @@ import pandas as pd
 import logging
 import zipfile
 import yaml
+import re
 import io
 
 
@@ -55,6 +56,7 @@ def get_twitter_trends() -> list[str]:
         list: List of trending topics on Twitter.
     """
     try:
+        logging.info(f"Collecting Trends...")
         trends = [trend.name for trend in sntwitter.TwitterTrendsScraper().get_items()]
         trends_translated = STranslator().translate_list("pt", "en", trends)
         logging.info(f"Trends Collected: {trends_translated}")
@@ -106,15 +108,27 @@ def separate_tweets_by_keywords(keyword_list: list[str]) -> pd.DataFrame:
                     file,
                     encoding="latin-1",
                     names=["target", "ids", "date", "flag", "user", "text"],
+                    dtype={
+                        "target": int,
+                        "ids": int,
+                        "date": str,
+                        "flag": str,
+                        "user": str,
+                        "text": str,
+                    },
                 )
+        logger.info("Trained data readed.")
     except BaseException as e:
         logger.error(f"Error occurred while loading data: {str(e)}")
         exit()
-    filtered_df = pd.DataFrame(columns=["word"] + df.columns.tolist())
-    for keyword in keyword_list:
-        filtered_tweets = df[df["text"].str.contains(keyword, case=False)]
-        filtered_tweets["word"] = keyword
-        filtered_df = pd.concat([filtered_df, filtered_tweets])
+    logger.info("Starting trained data handling for dataframe...")
+    keyword_pattern = "|".join(keyword_list)
+    keyword_mask = df["text"].str.contains(keyword_pattern, case=False, regex=True)
+    filtered_df = df[keyword_mask].copy()
+    filtered_df["word"] = filtered_df["text"].str.extract(
+        f"({keyword_pattern})", flags=re.IGNORECASE
+    )
+    logger.info("Trained data handling for dataframe finished!")
     return filtered_df
 
 
@@ -140,6 +154,7 @@ def process_twitter_data(
         #         v = list(v)
         #     filled_tweets_dict[k] = v
         df = separate_tweets_by_keywords(words)
+        logger.info("Starting process twitter data...")
         for word in words:
             tweets = df.loc[df["word"] == word, "text"].tolist()
             targets = df.loc[df["word"] == word, "target"].tolist()
@@ -160,6 +175,7 @@ def process_twitter_data(
                 logger.info(f"Total tweets types about '{word}': {tweets_types}")
             result[f"{word}"] = [positive_count, negative_count, tweets_types]
             result_compare[f"{word}"] = [positive, negative]
+        logger.info("Twitter data processed!")
         return result
     except Exception as e:
         logger.error(f"Error occurred during Twitter data processing: {str(e)}")
@@ -169,6 +185,7 @@ def process_twitter_data(
 def validate_api_key(config: dict[str, str]):
     api_key = config.get("api_key")
     if "X-API-Key" not in request.headers or request.headers["X-API-Key"] != api_key:
+        logger.warning("Unauthorized API Key!")
         abort(401, "Unauthorized")
 
 
