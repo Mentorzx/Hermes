@@ -8,6 +8,7 @@ from nltk.corpus import stopwords
 from collections import Counter
 from langdetect import detect
 from sklearn.svm import SVC
+from sklearn import metrics
 import pandas as pd
 import zipfile
 import logging
@@ -106,8 +107,18 @@ class SvmThinker:
                 X, y, test_size=0.2, random_state=42
             )
             self.svm.fit(X_train, y_train)
-            score = self.svm.score(X_test, y_test)
-            self.logger.info(f"Successfully trained model! Model score: {score}")
+            y_pred = self.svm.predict(X_test)
+            accuracy = metrics.accuracy_score(y_test, y_pred) * 100
+            precision = (
+                metrics.precision_score(y_test, y_pred, average="weighted") * 100
+            )
+            recall = metrics.recall_score(y_test, y_pred, average="weighted") * 100
+            f1_score = metrics.f1_score(y_test, y_pred, average="weighted") * 100
+            self.logger.info("Successfully trained model!")
+            self.logger.info(f"Accuracy: {accuracy:.2f}%")
+            self.logger.info(f"Precision: {precision:.2f}%")
+            self.logger.info(f"Recall: {recall:.2f}%")
+            self.logger.info(f"F1-Score: {f1_score:.2f}%")
         except BaseException as e:
             self.logger.error(f"Error occurred while training model: {str(e)}")
             exit()
@@ -148,7 +159,7 @@ class SvmThinker:
             self.logger.debug(f"Distribution of predictions: {Counter(predictions)}")
             for tweet, prediction in zip(tweets, predictions):
                 tweet_words = tweet.split()
-                # tweet_translated = []mas é isso que falei
+                # tweet_translated = []
                 # if detect(tweet) not in ["en", "nl", "so", "hr"]:
                 #     self.logger.warning(
                 #         f"Tweet '{tweet}' not in english, trying to translate..."
