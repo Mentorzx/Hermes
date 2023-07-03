@@ -122,7 +122,7 @@ def separate_tweets_by_keywords(keyword_list: list[str]) -> pd.DataFrame:
         logger.error(f"Error occurred while loading data: {str(e)}")
         exit()
     logger.info("Starting trained data handling for dataframe...")
-    keyword_pattern = "|".join(keyword_list)
+    keyword_pattern = f"(?:{'|'.join(keyword_list)})"
     keyword_mask = df["text"].str.contains(keyword_pattern, case=False, regex=True)
     filtered_df = df[keyword_mask].copy()
     filtered_df["word"] = (
