@@ -1,0 +1,11 @@
+translate==3.6.1
+googletrans==4.0.0rc1
+scikit-learn==1.2.2
+spellchecker==0.4
+langdetect==1.0.9
+pandas==2.0.1
+nltk==3.8.1
+PyYAML==6.0
+Flask==2.3.2
+typing_extensions==4.5.0
+snscrape==0.6.2.20230320

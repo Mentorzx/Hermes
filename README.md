@@ -26,7 +26,7 @@ Project Hermes has the following features:
 
 To use Project Hermes, follow the steps below:
 
-1. **Set up the environment**: Make sure you have the necessary dependencies installed in your development environment. Refer to the `requirements.txt` file (still under development) for a complete list of dependencies and their corresponding versions.
+1. **Set up the environment**: Make sure you have the necessary dependencies installed in your development environment. Refer to the `requirements.txt` file for a complete list of dependencies and their corresponding versions.
 
 2. **Configuration of the `config.yml` file**: The `config.yml` file contains the algorithm's configurations, such as Twitter access credentials and other relevant settings. Fill in all the necessary information correctly before running the algorithm.
 
@@ -51,6 +51,26 @@ To clear the cache, you can use the following command:
 curl -X POST http://hermesproject.pythonanywhere.com/clear_cache
 
 Please remember to follow the applicable policies and terms of use when using the API.
+
+### Used Libraries
+
+- spellchecker
+- collections
+- langdetect
+- sklearn
+- pandas
+- zipfile
+- logging
+- nltk
+- io
+- logging.handlers
+- flask
+- threading
+- functools
+- typing
+- snscrape.modules.twitter
+- math
+- yaml
 
 ## Legal Disclaimer
 
@@ -92,7 +112,7 @@ O Projeto Hermes possui as seguintes funcionalidades:
 
 Para utilizar o Projeto Hermes, siga as etapas abaixo:
 
-1. **Configuração do ambiente**: Certifique-se de ter as dependências necessárias instaladas no seu ambiente de desenvolvimento. Consulte o arquivo `requirements.txt` (ainda em desenvolvimento) para obter uma lista completa das dependências e suas versões correspondentes.
+1. **Configuração do ambiente**: Certifique-se de ter as dependências necessárias instaladas no seu ambiente de desenvolvimento. Consulte o arquivo `requirements.txt` para obter uma lista completa das dependências e suas versões correspondentes.
 
 2. **Configuração do arquivo `config.yml`**: O arquivo `config.yml` contém as configurações do algoritmo, como credenciais de acesso ao Twitter e outras configurações relevantes. Preencha corretamente todas as informações necessárias antes de executar o algoritmo.
 
@@ -118,6 +138,26 @@ Para limpar o cache, você pode usar o seguinte comando:
 curl -X POST http://hermesproject.pythonanywhere.com/clear_cache
 
 Lembre-se de seguir as políticas e termos de uso aplicáveis ao utilizar a API.
+
+### Bibliotecas Utilizadas
+
+- spellchecker
+- collections
+- langdetect
+- sklearn
+- pandas
+- zipfile
+- logging
+- nltk
+- io
+- logging.handlers
+- flask
+- threading
+- functools
+- typing
+- snscrape.modules.twitter
+- math
+- yaml
 
 ## Aviso Legal
 
