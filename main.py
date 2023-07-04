@@ -380,7 +380,6 @@ def get_trends():
     readme_path = os.path.join(app.root_path, "README.md")
     with open(readme_path, "r") as file:
         readme_content = file.read()
-
     response = {"content": readme_content}
     return jsonify(response)
 
