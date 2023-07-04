@@ -156,7 +156,7 @@ def separate_tweets_by_keywords(keyword_list: list[str]) -> pd.DataFrame:
 
 
 def process_twitter_data(
-    words: list[str], thinker: SvmThinker
+    words: list[str],
 ) -> dict[str, list[Union[int, dict[str, str]]]]:
     """
     Process Twitter data for the given words using the SvmThinker model.
@@ -267,7 +267,7 @@ def process_trends_search(trends_search: list[str]) -> list[dict]:
         list: A list of dictionaries containing the results for each trend, including the trend name,
             positive count, negative count, and tweet types.
     """
-    words = process_twitter_data(trends_search, thinker)
+    words = process_twitter_data(trends_search)
     results = []
     for trend in trends_search:
         trend_data = words.get(trend, [0, 0, {}])
