@@ -280,8 +280,12 @@ def process_trends_search(trends_search: list[str]) -> list[dict]:
     results = []
     for trend in trends_search:
         trend_data = words.get(trend, [0, 0, 0, 0, {}])
-        results.append(
-            {
+        # Cria uma lista de resultados para cada trend
+        trend_results = []
+        # Itera sobre os dicionários retornados por words.get(trend)
+        for dic in trend_data[-2:]:
+            # Cria um resultado com as informações básicas do trend
+            result = {
                 "trend": trend,
                 "negative_count": trend_data[0],
                 "neutral_count": trend_data[1],
@@ -289,7 +293,14 @@ def process_trends_search(trends_search: list[str]) -> list[dict]:
                 "positive_count": trend_data[3],
                 "tweet_types": trend_data[-1],
             }
-        )
+            # Adiciona as chaves e valores do dicionário ao resultado
+            if isinstance(dic, dict):
+                for key, value in dic.items():
+                    result[key] = value
+            # Adiciona o resultado à lista de resultados do trend
+            trend_results.append(result)
+        # Junta a lista de resultados do trend à lista geral de resultados
+        results.extend(trend_results)
     return results
 
 
