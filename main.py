@@ -3,6 +3,7 @@ from twitterwebcrawler import TwitterScraper
 from svm_algorithm import SvmThinker
 from translate_dataset import STranslator
 from flask import Flask, abort, jsonify, request
+from sklearn.metrics import confusion_matrix
 from threading import Thread
 from functools import wraps
 from typing import Union
@@ -40,12 +41,12 @@ def configure_logging(log_filename: str) -> logging.Logger:
     )
     log_handler.setFormatter(log_formatter)
     logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
+    logger.setLevel(logging.DEBUG)
     logger.addHandler(log_handler)
     return logger
 
 
-def load_config() -> dict[str, str]:
+def load_config() -> Union[dict[str, str], dict[str, list[str]]]:
     """
     Load the configuration from the config.yml file.
 
@@ -79,7 +80,7 @@ def get_twitter_trends() -> list[str]:
         exit()
 
 
-def train_thinker() -> tuple[SvmThinker, dict[str, int]]:
+def train_thinker() -> tuple[SvmThinker, list[dict[str, int]]]:
     """
     Train the SvmThinker model and return the trained model and metrics.
 
@@ -87,27 +88,26 @@ def train_thinker() -> tuple[SvmThinker, dict[str, int]]:
         tuple[SvmThinker, dict[str, int]]: A tuple containing the trained SvmThinker model
         and a dictionary of metrics.
     """
+    datasets = []
+    datasets.append(config.get("datasets_path"))
+    datasets.extend(config.get("datasets") or [])
     thinker = SvmThinker(logger)
-    thinker.load_data()
-    thinker.preprocess_data()
-    thinker.load_sentiment_words()
-    metrics = thinker.train_model()
+    thinker.load_data(datasets, is_zip=True)
+    thinker.preprocess_data(spell_check=False)
+    thinker.train_model()
+    metrics = thinker.evaluate_model()
     return thinker, metrics
 
 
 def separate_tweets_by_keywords(keyword_list: list[str]) -> pd.DataFrame:
     """
-    Reads a CSV file named 'tweets_trained.csv' located in the 'datasets' folder within 'datasets.zip' and separates the tweets based on the provided keyword list.
+    Reads a CSV file located in the 'datasets' folder within 'datasets.zip' and separates the tweets based on the provided keyword list.
 
     Args:
         keyword_list (list[str]): A list of keywords to search for in the tweets.
 
     Returns:
         pandas.DataFrame: A DataFrame containing the tweets that match the provided keywords.
-
-    Example:
-        keyword_list = ['bummer', 'outside']
-        filtered_df = separate_tweets_by_keywords(keyword_list)
 
     The function reads the CSV file located in the 'datasets' folder within 'datasets.zip' and searches for each keyword in the 'text' column of the DataFrame.
     It creates a new DataFrame with the tweets that contain any of the provided keywords.
@@ -119,25 +119,30 @@ def separate_tweets_by_keywords(keyword_list: list[str]) -> pd.DataFrame:
     """
     try:
         logger.info("Loading trained data...")
-        with open("datasets/datasets.zip", "rb") as zip_file:
-            conteudo_zip = zip_file.read()
-        arquivo_zip = io.BytesIO(conteudo_zip)
-        with zipfile.ZipFile(arquivo_zip, "r") as zip_ref:
-            with zip_ref.open("tweets_trained.csv") as file:
-                df = pd.read_csv(
-                    file,
-                    encoding="latin-1",
-                    names=["target", "ids", "date", "flag", "user", "text"],
-                    dtype={
-                        "target": int,
-                        "ids": int,
-                        "date": str,
-                        "flag": str,
-                        "user": str,
-                        "text": str,
-                    },
-                )
-        logger.info("Trained data readed.")
+        datasets_path = config.get("datasets_path")
+        databank = config.get("databank")
+        if isinstance(datasets_path, str) and isinstance(databank, str):
+            with open(datasets_path, "rb") as zip_file:
+                conteudo_zip = zip_file.read()
+            arquivo_zip = io.BytesIO(conteudo_zip)
+            with zipfile.ZipFile(arquivo_zip, "r") as zip_ref:
+                with zip_ref.open(databank) as file:
+                    df = pd.read_csv(
+                        file,
+                        encoding="latin-1",
+                        names=["target", "ids", "date", "flag", "user", "text"],
+                        dtype={
+                            "target": int,
+                            "ids": int,
+                            "date": str,
+                            "flag": str,
+                            "user": str,
+                            "text": str,
+                        },
+                    )
+            logger.info("Trained data readed.")
+        else:
+            raise TypeError("The datasets path and databank must be strings")
     except BaseException as e:
         logger.error(f"Error occurred while loading data: {str(e)}")
         exit()
@@ -153,6 +158,19 @@ def separate_tweets_by_keywords(keyword_list: list[str]) -> pd.DataFrame:
     )
     logger.info("Trained data handling for dataframe finished!")
     return filtered_df
+
+
+def process_tweets_by_word(
+    word: str, tweets: list[str], positive: int, negative: int
+) -> list[Union[dict[str, int], dict[str, list[str]]]]:
+    sentiment_tweets, figure_tweets = thinker.classify(word, tweets)
+    sentiment_count = [len(tweets) for tweets in sentiment_tweets.values()]
+    for analysis in (sentiment_tweets, figure_tweets):
+        if analysis:
+            log_metrics_results(
+                word, analysis, {"positive": positive, "negative": negative}
+            )
+    return [{key: len(value) for key, value in sentiment_tweets.items()}, figure_tweets]
 
 
 def process_twitter_data(
@@ -185,7 +203,11 @@ def process_twitter_data(
         logger.info("Starting process twitter data...")
         for word in words:
             tweets = df.loc[df["word"] == word, "text"].tolist()
-            targets = df.loc[df["word"] == word, "target"].tolist()
+            if not len(tweets):
+                logger.warning(f"No tweets found for '{word}'")
+                targets = []
+            else:
+                targets = df.loc[df["word"] == word, "target"].tolist()
             positive = len([x for x in targets if x > 2])
             negative = len([x for x in targets if x <= 2])
             result[word] = process_tweets_by_word(word, tweets, positive, negative)
@@ -196,64 +218,51 @@ def process_twitter_data(
         exit()
 
 
-def process_tweets_by_word(
-    word: str, tweets: list[str], positive: int, negative: int
-) -> list[Union[int, dict[str, str]]]:
-    """
-    Process the tweets for a given word using the SvmThinker class and return the results.
-
-    Args:
-        word (str): The word being processed.
-        tweets (list[str]): A list of tweets to process.
-        positive (int): The number of positive tweets.
-        negative (int): The number of negative tweets.
-
-    Returns:
-        list[Union[int, dict[str, str]]]: A list containing the results of the tweet processing.
-    """
-    positive_count, negative_count, tweets_types = thinker.classify_tweets(word, tweets)
-    if len(tweets_types) > 0:
-        log_metrics_results(
-            word, positive_count, negative_count, positive, negative, tweets_types
-        )
-    return [positive_count, negative_count, tweets_types]
-
-
 def log_metrics_results(
-    word: str,
-    positive_count: int,
-    negative_count: int,
-    positive: int,
-    negative: int,
-    tweets_types: dict[str, str],
+    word: str, analisis: dict[str, list[str]], real_values: dict[str, int]
 ) -> None:
     """
-    Log the results of the tweet processing for a given word.
+    Log the metrics results based on the provided analysis and real values.
 
     Args:
-        word (str): The word being processed.
-        positive_count (int): The number of positive tweets classified by the SvmThinker model.
-        negative_count (int): The number of negative tweets classified by the SvmThinker model.
-        positive (int): The number of real positive tweets.
-        negative (int): The number of real negative tweets.
-        tweets_types (dict[str, str]): A dictionary containing the types of tweets.
+        word (str): The word or subject of the analysis.
+        analisis (dict[str, list[str]]): A dictionary containing the analysis results with different keys.
+            Each key represents a specific type of analysis, and its value is a list of tweets related to that type.
+        real_values (dict[str, int]): A dictionary containing the real values or counts for each tweet type.
+            Each key represents a specific tweet type, and its value is the count of tweets for that type.
+
+    Returns:
+        None
+
+    Logs the following information:
+    - The total number of tweets for each analysis type: 'Total <key>-trained tweets about '<word>': <count>'
+    - If 'analisis' is one of the tweet types ['positive', 'negative', 'neutral', 'irrelevant'],
+      the total number of real tweets for each tweet type: 'Total <key>-real tweets about '<word>': <count>'
+    - The precision value based on the minimum count between the analysis and real values for 'positive' and 'negative' tweet types.
+    - The total number of tweets for all types of analysis: 'Total tweets types about '<word>': <total_size>'
     """
-    logger.info(f"Total trained-positive tweets about '{word}': {positive_count}")
-    logger.info(f"Total real-positive tweets about '{word}': {positive}")
-    logger.info(f"Total trained-negative tweets about '{word}': {negative_count}")
-    logger.info(f"Total real-negative tweets about '{word}': {negative}")
-    if positive_count <= positive:
-        positive_ac = positive_count
+    for key in analisis:
+        logger.info(f"Total {key}-trained tweets about '{word}': {len(analisis[key])}")
+    logger.info("----------------------------------------------")
+    if any(
+        key in ["positive", "negative", "neutral", "irrelevant"] for key in analisis
+    ):
+        for key in real_values:
+            logger.info(f"Total {key}-real tweets about '{word}': {real_values[key]}")
+        positive_ac = min(
+            len(analisis_pos := analisis.get("positive", [])),
+            real_values_pos := real_values.get("positive", 0),
+        )
+        negative_ac = min(
+            len(analisis_neg := analisis.get("negative", [])),
+            real_values_neg := real_values.get("negative", 0),
+        )
+        logger.warning(
+            f"{(((positive_ac + negative_ac) / (real_values_pos + real_values_neg)) * 100):.2f}% precision"
+        )
     else:
-        positive_ac = positive
-    if negative_count <= negative:
-        negative_ac = negative_count
-    else:
-        negative_ac = negative
-    logger.warning(
-        f"{(((positive_ac + negative_ac) / (positive + negative)) * 100):.2f}% precision"
-    )
-    logger.info(f"Total tweets types about '{word}': {tweets_types}")
+        total_size = sum(len(value) for value in analisis.values())
+        logger.info(f"Total tweets types about '{word}': {total_size}")
 
 
 def process_trends_search(trends_search: list[str]) -> list[dict]:
@@ -270,13 +279,15 @@ def process_trends_search(trends_search: list[str]) -> list[dict]:
     words = process_twitter_data(trends_search)
     results = []
     for trend in trends_search:
-        trend_data = words.get(trend, [0, 0, {}])
+        trend_data = words.get(trend, [0, 0, 0, 0, {}])
         results.append(
             {
                 "trend": trend,
-                "positive_count": trend_data[0],
-                "negative_count": trend_data[1],
-                "tweet_types": trend_data[2],
+                "negative_count": trend_data[0],
+                "neutral_count": trend_data[1],
+                "irrelevant_count": trend_data[2],
+                "positive_count": trend_data[3],
+                "tweet_types": trend_data[-1],
             }
         )
     return results
@@ -307,7 +318,7 @@ def create_response(page: int = 1, total_pages: int = 1, results: list = []) -> 
     return response
 
 
-def validate_api_key(config: dict[str, str]):
+def validate_api_key(config: dict):
     """
     Validate the API key from the request headers against the configured API key.
 
@@ -416,7 +427,29 @@ def get_trends_sentiment():
         json = jsonify(trends_cache[page])
         logging.info(f"Cache hit for page: {page}: {trends_cache[page]}")
         return json
-    trends = get_twitter_trends()
+    # trends = get_twitter_trends()
+    trends = [
+        "Book",
+        "Discrimination",
+        "Exploitation",
+        "Addiction",
+        "Mental health",
+        "Anita",
+        "Digital nomad",
+        "Propaganda",
+        "Wellness",
+        "Disinformation",
+        "Fake news",
+        "Influencer",
+        "Self-care",
+        "Upcycling",
+        "Ruby",
+        "Mindfulness",
+        "Slow living",
+        "Fight",
+        "Sustainability",
+        "Cancel culture",
+    ]
 
     def validate_page(func):
         @wraps(func)
@@ -453,7 +486,7 @@ def get_trends_sentiment():
         logging.info(f"Processed page {page}: {response}")
         return json
 
-    def process_remaining_pages():
+    def process_remaining_pages(page):
         """
         Process the remaining pages of Twitter trends.
 
@@ -475,10 +508,24 @@ def get_trends_sentiment():
             )
             logging.info(f"Processed remaining trends for page {remaining_page}")
 
+        # # Combine the tweet classifications for all trends
+        # all_predictions = []
+        # all_targets = []
+        # for page in trends_cache:
+        #     for trend_data in trends_cache[page]["results"]:
+        #         for prediction, tweets in trend_data["tweet_types"].items():
+        #             all_predictions += [prediction] * len(tweets)
+        #             all_targets += [prediction] * len(tweets)
+
+        # # Generate the confusion matrix
+        # confusion = confusion_matrix(all_targets, all_predictions)
+        # logging.info("Confusion Matrix:")
+        # logging.info(confusion)
+
     try:
         return get_page_response(page)
     finally:
-        thread = Thread(target=process_remaining_pages)
+        thread = Thread(target=process_remaining_pages, args=(page,))
         thread.start()
 
 
