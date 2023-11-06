@@ -27,7 +27,6 @@ def configure_logging(log_filename: str) -> logging.Logger:
 
     Args:
         log_filename (str): The name of the log file.
-
     Returns:
         logging.Logger: The logger object.
     """
@@ -88,9 +87,10 @@ def train_thinker() -> tuple[SvmThinker, list[dict[str, int]]]:
         tuple[SvmThinker, dict[str, int]]: A tuple containing the trained SvmThinker model
         and a dictionary of metrics.
     """
-    datasets = []
-    datasets.append(config.get("datasets_path"))
-    datasets.extend(config.get("datasets") or [])
+    datasets = [config.get("datasets_path")]
+    datasets += config.get("datasets") or []
+    datasets = list(filter(None, datasets))  # Remove None from the list
+    datasets = [item for sublist in datasets for item in (sublist if isinstance(sublist, list) else [sublist])] if datasets else []
     thinker = SvmThinker(logger)
     thinker.load_data(datasets, is_zip=True)
     thinker.preprocess_data(spell_check=False)
@@ -123,9 +123,9 @@ def separate_tweets_by_keywords(keyword_list: list[str]) -> pd.DataFrame:
         databank = config.get("databank")
         if isinstance(datasets_path, str) and isinstance(databank, str):
             with open(datasets_path, "rb") as zip_file:
-                conteudo_zip = zip_file.read()
-            arquivo_zip = io.BytesIO(conteudo_zip)
-            with zipfile.ZipFile(arquivo_zip, "r") as zip_ref:
+                content_zip = zip_file.read()
+            file_zip = io.BytesIO(content_zip)
+            with zipfile.ZipFile(file_zip, "r") as zip_ref:
                 with zip_ref.open(databank) as file:
                     df = pd.read_csv(
                         file,
@@ -140,7 +140,7 @@ def separate_tweets_by_keywords(keyword_list: list[str]) -> pd.DataFrame:
                             "text": str,
                         },
                     )
-            logger.info("Trained data readed.")
+            logger.info("Trained data read.")
         else:
             raise TypeError("The datasets path and databank must be strings")
     except BaseException as e:
@@ -219,14 +219,14 @@ def process_twitter_data(
 
 
 def log_metrics_results(
-    word: str, analisis: dict[str, list[str]], real_values: dict[str, int]
+    word: str, analysis: dict[str, list[str]], real_values: dict[str, int]
 ) -> None:
     """
     Log the metrics results based on the provided analysis and real values.
 
     Args:
         word (str): The word or subject of the analysis.
-        analisis (dict[str, list[str]]): A dictionary containing the analysis results with different keys.
+        analysis (dict[str, list[str]]): A dictionary containing the analysis results with different keys.
             Each key represents a specific type of analysis, and its value is a list of tweets related to that type.
         real_values (dict[str, int]): A dictionary containing the real values or counts for each tweet type.
             Each key represents a specific tweet type, and its value is the count of tweets for that type.
@@ -236,32 +236,32 @@ def log_metrics_results(
 
     Logs the following information:
     - The total number of tweets for each analysis type: 'Total <key>-trained tweets about '<word>': <count>'
-    - If 'analisis' is one of the tweet types ['positive', 'negative', 'neutral', 'irrelevant'],
+    - If 'analysis' is one of the tweet types ['positive', 'negative', 'neutral', 'irrelevant'],
       the total number of real tweets for each tweet type: 'Total <key>-real tweets about '<word>': <count>'
     - The precision value based on the minimum count between the analysis and real values for 'positive' and 'negative' tweet types.
     - The total number of tweets for all types of analysis: 'Total tweets types about '<word>': <total_size>'
     """
-    for key in analisis:
-        logger.info(f"Total {key}-trained tweets about '{word}': {len(analisis[key])}")
+    for key in analysis:
+        logger.info(f"Total {key}-trained tweets about '{word}': {len(analysis[key])}")
     logger.info("----------------------------------------------")
     if any(
-        key in ["positive", "negative", "neutral", "irrelevant"] for key in analisis
+        key in ["positive", "negative", "neutral", "irrelevant"] for key in analysis
     ):
         for key in real_values:
             logger.info(f"Total {key}-real tweets about '{word}': {real_values[key]}")
         positive_ac = min(
-            len(analisis_pos := analisis.get("positive", [])),
+            len(analysis_pos := analysis.get("positive", [])),
             real_values_pos := real_values.get("positive", 0),
         )
         negative_ac = min(
-            len(analisis_neg := analisis.get("negative", [])),
+            len(analysis_neg := analysis.get("negative", [])),
             real_values_neg := real_values.get("negative", 0),
         )
         logger.warning(
             f"{(((positive_ac + negative_ac) / (real_values_pos + real_values_neg)) * 100):.2f}% precision"
         )
     else:
-        total_size = sum(len(value) for value in analisis.values())
+        total_size = sum(len(value) for value in analysis.values())
         logger.info(f"Total tweets types about '{word}': {total_size}")
 
 
@@ -280,11 +280,8 @@ def process_trends_search(trends_search: list[str]) -> list[dict]:
     results = []
     for trend in trends_search:
         trend_data = words.get(trend, [0, 0, 0, 0, {}])
-        # Cria uma lista de resultados para cada trend
         trend_results = []
-        # Itera sobre os dicionários retornados por words.get(trend)
         for dic in trend_data[-2:]:
-            # Cria um resultado com as informações básicas do trend
             result = {
                 "trend": trend,
                 "negative_count": trend_data[0],
@@ -293,18 +290,16 @@ def process_trends_search(trends_search: list[str]) -> list[dict]:
                 "positive_count": trend_data[3],
                 "tweet_types": trend_data[-1],
             }
-            # Adiciona as chaves e valores do dicionário ao resultado
             if isinstance(dic, dict):
                 for key, value in dic.items():
                     result[key] = value
-            # Adiciona o resultado à lista de resultados do trend
             trend_results.append(result)
-        # Junta a lista de resultados do trend à lista geral de resultados
         results.extend(trend_results)
     return results
 
 
 def create_response(page: int = 1, total_pages: int = 1, results: list = []) -> dict:
+    # sourcery skip: default-mutable-arg
     """
     Create a response dictionary containing pagination information and the results.
 

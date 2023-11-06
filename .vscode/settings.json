@@ -3,5 +3,22 @@
     "[python]": {
         "editor.defaultFormatter": "ms-python.black-formatter"
     },
-    "python.formatting.provider": "none"
+    "python.formatting.provider": "none",
+    "python.analysis.autoImportCompletions": true,
+    "cSpell.words": [
+        "databank",
+        "dtype",
+        "googletrans",
+        "Gtranslator",
+        "jsonify",
+        "levelname",
+        "ndarray",
+        "punkt",
+        "snscrape",
+        "sntwitter",
+        "Tfidf",
+        "twitterwebcrawler",
+        "Upcycling",
+        "wordnet"
+    ]
 }

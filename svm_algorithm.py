@@ -3,7 +3,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.svm import SVC
 from sklearn import metrics
 from translate_dataset import STranslator
-from spellchecker import SpellChecker
+from spellchecker import SpellChecker  # type: ignore
 from nltk.stem import WordNetLemmatizer
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
@@ -62,9 +62,9 @@ class SvmThinker:
             if is_zip:
                 zip_path = file_names[0]
                 with open(zip_path, "rb") as zip_file:
-                    conteudo_zip = zip_file.read()
-                arquivo_zip = io.BytesIO(conteudo_zip)
-                with zipfile.ZipFile(arquivo_zip, "r") as zip_ref:
+                    content_zip = zip_file.read()
+                file_zip = io.BytesIO(content_zip)
+                with zipfile.ZipFile(file_zip, "r") as zip_ref:
                     for file_name in file_names[1:]:
                         with zip_ref.open(file_name) as file:
                             self.data[file_name] = pd.read_csv(file, encoding="utf-8")
@@ -87,12 +87,12 @@ class SvmThinker:
 
     def preprocess_data(self, clean=True, spell_check=True, lemmatize=True) -> None:
         """
-        Preprocesses the data by performing several steps including cleaning, spell-checking, and lemmatization.
+        Preprocess the data by performing several steps including cleaning, spell-checking, and lemmatization.
 
         Args:
             clean (bool): If True, removes special characters, numbers, URLs, hashtags, and usernames. Defaults to True.
             spell_check (bool): If True, fixes spelling errors using a spell checker. Defaults to True.
-            lemmatize (bool): If True, lemmatizes words using the WordNet lemmatizer and removes stopwords. Defaults to True.
+            lemmatize (bool): If True, lemmatize words using the WordNet lemmatizer and removes stopwords. Defaults to True.
 
         Raises:
             BaseException: If an error occurs during the preprocessing steps.
@@ -177,9 +177,9 @@ class SvmThinker:
         df = self.data[dataset_index]
         X = df.iloc[:, 0]
         y = df.iloc[:, 1]
-        vectorizer = TfidfVectorizer()
-        X = vectorizer.fit_transform(X)
-        self.vectorizers.append(vectorizer)
+        vectorized = TfidfVectorizer()
+        X = vectorized.fit_transform(X)
+        self.vectorizers.append(vectorized)
         X_train, X_test, y_train, y_test = train_test_split(
             X, y, test_size=0.2, random_state=42
         )
@@ -220,10 +220,11 @@ class SvmThinker:
             self.logger.info("Evaluating models...")
             metrics_list = []
             for dataset_index, model in zip(self.data.keys(), self.models):
-                metrics_dict = {}
                 _, X_test, _, y_test = self.split_data(dataset_index)
                 y_pred = model.predict(X_test)
-                metrics_dict["accuracy"] = metrics.accuracy_score(y_test, y_pred) * 100
+                metrics_dict = {
+                    "accuracy": metrics.accuracy_score(y_test, y_pred) * 100
+                }
                 metrics_dict["precision"] = (
                     metrics.precision_score(y_test, y_pred, average="weighted") * 100
                 )
@@ -265,13 +266,13 @@ class SvmThinker:
         """
         try:
             phrases_types_list = []
-            if len(phrases) == 0:
+            if not phrases:
                 return phrases_types_list
             self.logger.info(f"Classifying phrases for '{subject}'...")
             self.logger.debug(f"Received {len(phrases)} phrases")
             for index, model in enumerate(self.models):
-                vectorizer = self.vectorizers[index]
-                X_new = vectorizer.transform(phrases)
+                vectorized = self.vectorizers[index]
+                X_new = vectorized.transform(phrases)
                 phrases_types = {}
                 predictions = model.predict(X_new)
                 self.logger.debug(

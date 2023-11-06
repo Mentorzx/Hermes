@@ -33,22 +33,18 @@ class TwitterScraper:
         try:
             self.logger.info("Logging in website...")
             driver = self.get_website(url)
-            self.logger.info("Entering email...")
-            email = WebDriverWait(driver, 5).until(
-                EC.visibility_of_element_located((By.CSS_SELECTOR, "input[name='text']")))
-            email.send_keys(login)
-            email.send_keys(Keys.RETURN)
+            self._wait_and_search(
+                "Entering email...", driver, "input[name='text']", login
+            )
             if EC.presence_of_element_located((By.CSS_SELECTOR, '[data-testid="ocfEnterTextTextInput"]')):
                 self.logger.info("Handling unusual access...")
                 email = WebDriverWait(driver, 5).until(
                     EC.visibility_of_element_located((By.CSS_SELECTOR, "input[name='text']")))
                 email.send_keys(login[:-10])
                 email.send_keys(Keys.RETURN)
-            self.logger.info("Entering password...")
-            password_input = WebDriverWait(driver, 5).until(
-                EC.visibility_of_element_located((By.CSS_SELECTOR, "input[name='password']")))
-            password_input.send_keys(password)
-            password_input.send_keys(Keys.RETURN)
+            self._wait_and_search(
+                "Entering password...", driver, "input[name='password']", password
+            )
             time.sleep(2)
             if EC.presence_of_element_located((By.CSS_SELECTOR, '[data-testid="tweetTextarea_0RichTextInputContainer"]')):
                 self.logger.info("Website login successful.")
@@ -59,6 +55,15 @@ class TwitterScraper:
             self.logger.error(f"Error occurred during website login: {str(e)}")
             exit()
 
+    # TODO Rename this here and in `get_login`
+    def _wait_and_search(self, arg0, driver, arg2, arg3):
+        self.logger.info(arg0)
+        email = WebDriverWait(driver, 5).until(
+            EC.visibility_of_element_located((By.CSS_SELECTOR, arg2))
+        )
+        email.send_keys(arg3)
+        email.send_keys(Keys.RETURN)
+
     def get_tweets(self, search_query: list[str]) -> dict[str, set[str]]:
         try:
             self.logger.info(
@@ -67,7 +72,6 @@ class TwitterScraper:
             self.driver = self.get_login(
                 self.config["url"], self.config["login"], self.config["password"])
             for search_line in search_query:
-                scrolls = 1
                 data = set()
                 URL = f'https://twitter.com/search?q={search_line}&src=typed_query'
                 self.logger.info(
@@ -84,10 +88,9 @@ class TwitterScraper:
                 wait = WebDriverWait(self.driver, 10)
                 self.logger.info("Collecting tweets...")
                 time.sleep(1)
-                while scrolls < 10:
+                for _ in range(1, 10):
                     self.driver.execute_script(
                         "window.scrollTo(0, document.body.scrollHeight);")
-                    scrolls += 1
                     time.sleep(2)
                 try:
                     tweets = wait.until(EC.presence_of_all_elements_located(
